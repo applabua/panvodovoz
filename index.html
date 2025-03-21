@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <!-- Обязательно: чтобы страница была адаптивной на iOS и Android -->
+  <!-- Обязательно для адаптации под мобильные устройства -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Пан Водовоз - Доставка води по Україні</title>
   
@@ -87,7 +87,7 @@
       padding: 20px;
       text-align: center;
     }
-    /* Остальные секции – могут прокручиваться */
+    /* Остальные секции – прокручиваются при необходимости */
     section:not(#main):not(#order) {
       flex-direction: column;
       align-items: center;
@@ -416,7 +416,6 @@
       transform: scale(0.98);
       box-shadow: 0 0 5px rgba(173,216,230, 0.6);
     }
-
   </style>
 
   <!-- OpenLayers JS -->
@@ -643,6 +642,7 @@
   </div>
 </section>
 
+<script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
 <script>
   // 1) Loader на 3 секунды
   window.addEventListener('load', function() {
@@ -756,12 +756,12 @@
     };
     
     // Отправляем данные через Telegram WebApp API
-    // ВАЖНО: это работает только если открыть страницу внутри Telegram (кнопка WebApp)
     if (window.Telegram && window.Telegram.WebApp) {
       Telegram.WebApp.sendData(JSON.stringify(orderData));
       alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
       orderForm.reset();
     } else {
+      // Если пользователь открыл страницу в браузере, а не из Telegram
       alert("Помилка: неможливо надіслати дані. Відкрийте додаток через Telegram.");
     }
   });
