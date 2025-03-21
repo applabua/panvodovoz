@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
+  <!-- Обязательно: чтобы страница была адаптивной на iOS и Android -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Пан Водовоз - Доставка води по Україні</title>
   
@@ -21,7 +22,43 @@
       background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
     }
 
-    /* Для всех секций задаём минимальную высоту, чтобы фон всегда занимал 100vh */
+    /* LOADER (3 секунды) */
+    #loader {
+      position: fixed;
+      z-index: 9999;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 8px solid #f2f2f2;
+      border-top: 8px solid #00437a;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* CONFIRM LOADER – появляется при подтверждении геолокации */
+    #confirmLoader {
+      position: fixed;
+      z-index: 10000;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Секции (экраны) */
     section {
       position: absolute;
       top: 0;
@@ -41,7 +78,7 @@
       visibility: visible;
       pointer-events: auto;
     }
-    /* Главная и форма заказа – фиксированные по высоте */
+    /* Главная и заказ – без прокрутки, по центру */
     #main, #order {
       flex-direction: column;
       align-items: center;
@@ -50,7 +87,7 @@
       padding: 20px;
       text-align: center;
     }
-    /* Остальные секции могут прокручиваться */
+    /* Остальные секции – могут прокручиваться */
     section:not(#main):not(#order) {
       flex-direction: column;
       align-items: center;
@@ -65,7 +102,7 @@
       text-align: justify;
       margin-bottom: 1em;
     }
-    
+
     /* Иконки (Telegram, Viber) – слева сверху */
     .social-icons {
       position: absolute;
@@ -181,7 +218,7 @@
       background: transparent;
     }
 
-    /* Главная страница – описание и кнопки */
+    /* Главная страница */
     #main .text-block {
       margin-top: 30px;
       margin-bottom: 20px;
@@ -226,7 +263,7 @@
       box-shadow: 0 0 10px rgba(173,216,230, 1);
     }
 
-    /* Экран "Послуги" и прочие разделы */
+    /* Экран "Послуги" и "Про нас" */
     #services, #about {
       font-family: Arial, sans-serif;
       font-size: 1rem;
@@ -331,9 +368,6 @@
       text-align: center;
       margin-bottom: 10px;
     }
-    #contactModal .modal-content p.office-address {
-      white-space: nowrap;
-    }
 
     /* Модальное окно для карты */
     #mapModal .modal-content {
@@ -383,10 +417,6 @@
       box-shadow: 0 0 5px rgba(173,216,230, 0.6);
     }
 
-    /* Раздел "Про нас" */
-    #about {
-      padding-top: 60px;
-    }
   </style>
 
   <!-- OpenLayers JS -->
@@ -394,7 +424,7 @@
 </head>
 <body>
 
-<!-- LOADER (3 секунди) -->
+<!-- LOADER (3 секунды) -->
 <div id="loader">
   <div class="spinner"></div>
 </div>
@@ -404,7 +434,7 @@
   <div class="spinner"></div>
 </div>
 
-<!-- ГОЛОВНА СТРАНИЦЯ -->
+<!-- ГЛАВНАЯ СТРАНИЦА -->
 <section id="main" class="active">
   <!-- Иконки (Telegram, Viber) -->
   <div class="social-icons">
@@ -419,14 +449,13 @@
 
   <div class="text-block">
     <p>
-      Наша компанія "Пан Водовоз" здійснює доставку питної артезіанської та технічної води 
+      Наша компанія «Пан Водовоз» здійснює доставку питної артезіанської та технічної води 
       по Чернівцях та Чернівецькій області у будь-яких обсягах. У нас є власний автопарк 
-      і необхідне обладнання для замовлення води для будь-яких потреб.
+      і все необхідне обладнання для ваших потреб.
     </p>
   </div>
 
   <div class="main-buttons">
-    <!-- Кнопка "Замовити воду" -->
     <button class="highlight-btn" onclick="showSection('order')">Замовити воду</button>
     <button onclick="showSection('services')">Послуги</button>
     <button onclick="showSection('about')">Про нас</button>
@@ -434,7 +463,7 @@
   </div>
 </section>
 
-<!-- МОДАЛЬНЕ ВІКНО ЧАТА -->
+<!-- МОДАЛЬНОЕ ОКНО ЧАТА -->
 <div id="chatModal">
   <div class="chat-content">
     <span class="chat-close" onclick="document.getElementById('chatModal').style.display='none'">&times;</span>
@@ -449,7 +478,7 @@
   </div>
 </div>
 
-<!-- МОДАЛЬНЕ ВІКНО ДЛЯ КАРТИ -->
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ КАРТЫ -->
 <div id="mapModal" class="modal">
   <div class="modal-content">
     <span class="close" onclick="document.getElementById('mapModal').style.display='none'">&times;</span>
@@ -459,7 +488,7 @@
   </div>
 </div>
 
-<!-- МОДАЛЬНЕ ВІКНО "КОНТАКТИ" -->
+<!-- МОДАЛЬНОЕ ОКНО "КОНТАКТИ" -->
 <div id="contactModal" class="modal">
   <div class="modal-content">
     <span class="close" onclick="document.getElementById('contactModal').style.display='none'">&times;</span>
@@ -470,7 +499,7 @@
     <p style="white-space: nowrap;"><strong>Адреса офісу:</strong> м. Чернівці, вул. Хотинська, 45</p>
     <p><strong>Графік роботи:</strong> Пн–Нд: 08:00–22:00 (доставка 24/7 за домовленістю)</p>
     <p>
-      Компанія «Пан Водовоз» здійснює доставку води в різні регіони України. 
+      Компанія «Пан Водовоз» здійснює доставку води в різні регіони України.
       Забезпечуємо приватних осіб, підприємства, будівельні майданчики, 
       фермерські господарства та інші об’єкти сертифікованою водою.
     </p>
@@ -481,7 +510,7 @@
   </div>
 </div>
 
-<!-- СТРАНИЦЯ "ПРО НАС" -->
+<!-- ЭКРАН "ПРО НАС" -->
 <section id="about">
   <a class="back-btn" onclick="showSection('main')">Назад</a>
   <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Про нас</h2>
@@ -503,9 +532,8 @@
       <li>Гнучкі тарифи та індивідуальний підхід до кожного клієнта</li>
     </ul>
     <p>
-      «Пан Водовоз» більше 15 років успішно працює на ринку доставки води в Чернівцях та області. 
-      Ми пропонуємо комплексні рішення для забезпечення питною та технічною водою як приватних клієнтів, 
-      так і підприємств.
+      Ми пропонуємо комплексні рішення для забезпечення питною та технічною водою 
+      як приватних клієнтів, так і підприємств.
     </p>
     <div style="text-align:center; margin-top:20px;">
       <img src="https://i.ibb.co/VW8bt8t8/IMG-9272.jpg" alt="IMG-9272" 
@@ -514,30 +542,31 @@
   </div>
 </section>
 
-<!-- СТРАНИЦЯ "ПОСЛУГИ" -->
+<!-- ЭКРАН "ПОСЛУГИ" -->
 <section id="services">
   <a class="back-btn" onclick="showSection('main')">Назад</a>
   <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Послуги</h2>
   <div style="font-family: Arial, sans-serif; font-size: 1rem;">
-    <!-- (1) Доставка артезіанської води -->
+    <!-- Доставка артезіанської води -->
     <p><strong>Доставка артезіанської води</strong></p>
     <p>
-      Наша компанія здійснює доставку води водовозом у Чернівцях у будь-якому обсязі. 
-      Артезіанська вода відповідає всім нормам, має необхідні сертифікати та проходить лабораторну перевірку.
+      Ми здійснюємо доставку води водовозом у Чернівцях у будь-якому обсязі. 
+      Артезіанська вода відповідає всім нормам, має необхідні сертифікати 
+      та проходить лабораторну перевірку.
     </p>
     <div style="text-align:center; margin-top:20px;">
       <img src="https://i.ibb.co/VW8bt8t8/IMG-9272.jpg" alt="IMG-9272"
            style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
     <br>
-    <!-- (2) Доставка технічної води -->
+    <!-- Доставка технічної води -->
     <p><strong>Доставка технічної води</strong></p>
     <p>
-      Технічна вода використовується для поливу, миття фасадів, будівництва та ін. 
-      Швидка подача води під тиском, можливий об'єм до 15 м³, довжина шланга – до 70 метрів.
+      Технічна вода використовується для поливу, миття фасадів, будівництва тощо.
+      Обсяг до 15 м³ за один рейс, шланг до 70 м, швидке реагування.
     </p>
     <ul style="margin-left: 20px; list-style: circle;">
-      <li>Великі обсяги (до 15 м³ за один рейс)</li>
+      <li>Великі обсяги (до 15 м³)</li>
       <li>Шланг до 70 метрів</li>
       <li>Швидке реагування</li>
       <li>Знижки для постійних клієнтів</li>
@@ -547,17 +576,18 @@
            style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
     <br>
-    <!-- (3) Доставка води для басейнів -->
+    <!-- Доставка води для басейнів -->
     <p><strong>Доставка води для басейнів</strong></p>
     <p>
-      Наливання води в басейни будь-якого об’єму за допомогою автоцистерн із насосним обладнанням.
+      Наповнюємо басейни будь-якого об’єму автоцистернами з насосним обладнанням.
+      Санітарна обробка після кожного рейсу.
     </p>
     <div style="text-align:center; margin-top:20px;">
       <img src="https://i.ibb.co/hJDd4s6f/IMG-9273.jpg" alt="IMG-9273" 
            style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
     <br>
-    <!-- (4) Додаткові послуги -->
+    <!-- Додаткові послуги -->
     <p><strong>Додаткові послуги</strong></p>
     <ul style="margin-left: 20px; list-style: square;">
       <li>Ассенізація та вивіз стічних вод</li>
@@ -567,23 +597,25 @@
     <br>
     <p><strong>Скільки коштує доставка?</strong></p>
     <p>
-      Для визначення точної вартості натисніть кнопку нижче або зателефонуйте нам.
+      Ціни залежать від обсягу, відстані та конкретних вимог. Щоб дізнатися ціну,
+      натисніть кнопку нижче або зателефонуйте.
     </p>
     <button class="form-btn" style="margin: 10px 0;" onclick="openContactModal()">
       Дізнатися ціну
     </button>
     <p>
-      Доставка здійснюється по всій Чернівецькій області (24/7 за домовленістю).
+      Працюємо по всій Чернівецькій області (24/7 за домовленістю).
     </p>
   </div>
 </section>
 
-<!-- СТРАНИЦЯ "ЗАМОВИТИ" -->
+<!-- ЭКРАН "ЗАМОВИТИ" -->
 <section id="order">
   <a class="back-btn" onclick="showSection('main')">Назад</a>
   <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Замовити воду</h2>
   <p style="max-width:600px; text-align:justify; margin-bottom:20px;">
-    Заповніть форму нижче, щоб швидко оформити замовлення. Вкажіть об’єм, довжину шланга, адресу доставки, дату/час, номер телефону та оберіть геопозицію.
+    Будь ласка, заповніть форму нижче: об’єм, довжину шланга, адресу, дату/час та номер телефону. 
+    Потім виберіть геолокацію на карті (кнопка «Вибрати геолокацію»).
   </p>
   <div id="orderFormContainer">
     <form id="orderForm">
@@ -602,7 +634,7 @@
       <label for="clientPhone">Ваш номер телефону*</label>
       <input type="text" id="clientPhone" name="clientPhone" placeholder="+38 (___) ___ __ __" required />
 
-      <!-- Скрытое поле для збереження геопозиції -->
+      <!-- Скрытое поле для ссылки на геолокацию (OpenStreetMap) -->
       <input type="hidden" id="geoCoords" name="geoCoords" />
 
       <button type="button" class="form-btn" onclick="openMapModal()">Вибрати геолокацію</button>
@@ -611,10 +643,8 @@
   </div>
 </section>
 
-<!-- СКРИПТИ -->
-<script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
 <script>
-  // 1) LOADER (3 секунди)
+  // 1) Loader на 3 секунды
   window.addEventListener('load', function() {
     setTimeout(function(){
       document.getElementById('loader').style.display = 'none';
@@ -622,14 +652,14 @@
     }, 3000);
   });
 
-  // 2) Перемикання секцій
+  // 2) Переключение секций
   function showSection(sectionId) {
     const allSections = document.querySelectorAll('section');
     allSections.forEach(sec => sec.classList.remove('active'));
     document.getElementById(sectionId).classList.add('active');
   }
 
-  // 3) Чат з оператором
+  // 3) Чат с оператором
   function sendMessage() {
     const input = document.getElementById('chatInputText');
     const msg = input.value.trim();
@@ -642,7 +672,7 @@
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // 4) Модальне вікно карти (OpenLayers + Nominatim)
+  // 4) Модальное окно карты + OpenLayers
   let mapInitialized = false;
   let map;
   let markerSource;
@@ -650,10 +680,8 @@
     document.getElementById('mapModal').style.display = 'flex';
     if (!mapInitialized) {
       mapInitialized = true;
-      const tileLayer = new ol.layer.Tile({
-        source: new ol.source.OSM()
-      });
       markerSource = new ol.source.Vector();
+      const tileLayer = new ol.layer.Tile({ source: new ol.source.OSM() });
       const markerLayer = new ol.layer.Vector({ source: markerSource });
       map = new ol.Map({
         target: 'olMap',
@@ -664,6 +692,7 @@
         })
       });
 
+      // Клик по карте: ставим маркер и делаем обратное геокодирование
       map.on('click', function(evt) {
         const coords = ol.proj.toLonLat(evt.coordinate);
         const lat = coords[1];
@@ -680,7 +709,8 @@
           })
         }));
         markerSource.addFeature(markerFeature);
-        // Обратне геокодування (Nominatim)
+
+        // Обратное геокодирование (Nominatim)
         fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
           .then(response => response.json())
           .then(data => {
@@ -697,10 +727,12 @@
               finalAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}`;
             }
             document.getElementById('address').value = finalAddress;
-            // Записуємо геодані як посилання на карту (OpenStreetMap)
-            document.getElementById('geoCoords').value = "https://www.openstreetmap.org/?mlat=" 
-              + lat.toFixed(6) + "&mlon=" + lon.toFixed(6) + "#map=18/" 
-              + lat.toFixed(6) + "/" + lon.toFixed(6);
+            
+            // Сохраняем ссылку на карту (OpenStreetMap) в скрытое поле
+            document.getElementById('geoCoords').value = 
+              "https://www.openstreetmap.org/?mlat=" + lat.toFixed(6) +
+              "&mlon=" + lon.toFixed(6) +
+              "#map=18/" + lat.toFixed(6) + "/" + lon.toFixed(6);
           })
           .catch(err => {
             document.getElementById('address').value = `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}`;
@@ -709,11 +741,11 @@
     }
   }
 
-  // 5) Обробка форми "Замовити"
+  // 5) Обработка формы "Замовити"
   const orderForm = document.getElementById('orderForm');
   orderForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    // Збираємо дані форми, включаючи посилання на геолокацію
+    // Сбор данных формы
     const orderData = {
       volume: document.getElementById('volume').value,
       hoseLength: document.getElementById('hoseLength').value,
@@ -722,15 +754,19 @@
       clientPhone: document.getElementById('clientPhone').value,
       geoCoords: document.getElementById('geoCoords').value
     };
-    // Відправляємо дані через Telegram WebApp API
+    
+    // Отправляем данные через Telegram WebApp API
+    // ВАЖНО: это работает только если открыть страницу внутри Telegram (кнопка WebApp)
     if (window.Telegram && window.Telegram.WebApp) {
       Telegram.WebApp.sendData(JSON.stringify(orderData));
+      alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
+      orderForm.reset();
+    } else {
+      alert("Помилка: неможливо надіслати дані. Відкрийте додаток через Telegram.");
     }
-    alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
-    orderForm.reset();
   });
 
-  // 6) Модальне вікно "Контакти"
+  // 6) Модальное окно "Контакти"
   function openContactModal() {
     document.getElementById('contactModal').style.display = 'flex';
   }
@@ -738,7 +774,7 @@
     document.getElementById('contactModal').style.display = 'none';
   }
   
-  // 7) Функція для підтвердження вибору на карті з завантажувачем
+  // 7) Подтверждение геолокации
   function confirmMap() {
     document.getElementById('mapModal').style.display = 'none';
     document.getElementById('confirmLoader').style.display = 'flex';
