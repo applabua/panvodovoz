@@ -1,810 +1,820 @@
 <!DOCTYPE html>
 <html lang="uk">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>Пан Водовоз - Доставка води по Україні</title>
-    <!-- OpenLayers CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.css" />
-    <style>
-      /* СБРОС И БАЗОВЫЕ СТИЛИ */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: Arial, sans-serif;
-      }
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
-      }
-      /* LOADER (3 секунды) */
-      #loader {
-        position: fixed;
-        z-index: 9999;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .spinner {
-        width: 60px;
-        height: 60px;
-        border: 8px solid #f2f2f2;
-        border-top: 8px solid #00437a;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      /* CONFIRM LOADER – появляется при нажатии на "Підтвердити" */
-      #confirmLoader {
-        position: fixed;
-        z-index: 10000;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: none;
-        align-items: center;
-        justify-content: center;
-      }
-      /* СТИЛИ СЕКЦИЙ с плавным переходом */
-      section {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition: opacity 0.5s ease;
-      }
-      section.active {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-      }
-      /* Фиксированные экраны: Главная и Замовити */
-      #main, #order {
-        position: fixed;
-        overflow: hidden;
-      }
-      /* Главная страница – не прокручивается */
-      #main {
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        text-align: center;
-      }
-      /* Остальные секции – прокручиваются */
-      section:not(#main) {
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        overflow-y: auto;
-        padding: 20px;
-        text-align: left;
-      }
-      /* Переопределение для страницы Замовити – чтобы не было прокрутки */
-      #order {
-        overflow-y: hidden;
-      }
-      /* Общие стили для текстовых элементов */
-      p {
-        text-align: justify;
-        margin-bottom: 1em;
-      }
-      /* Заголовок-приветствие на главной */
-      #main h1 {
-        color: #00437a;
-        margin-bottom: 20px;
-      }
-      /* Сделать текст описания на главной странице жирным */
-      #main .text-block p {
-        font-weight: bold;
-      }
-      /* ИКОНКИ (TELEGRAM, Viber) – СЛЕВА СВЕРХУ */
-      .social-icons {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 2000;
-        display: flex;
-        gap: 10px;
-      }
-      .social-icons img {
-        width: 24px;
-        height: 24px;
-        cursor: pointer;
-      }
-      /* МОДАЛ ЧАТА */
-      #chatModal {
-        display: none;
-        position: fixed;
-        z-index: 3000;
-        left: 0;
-        top: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0,0,0,0.5);
-        align-items: center;
-        justify-content: center;
-      }
-      #chatModal .chat-content {
-        background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
-        border-radius: 8px;
-        padding: 20px;
-        width: 90%;
-        max-width: 400px;
-        min-height: 300px;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-      }
-      #chatModal .chat-close {
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        font-size: 24px;
-        color: #aaa;
-        cursor: pointer;
-      }
-      #chatModal .chat-close:hover {
-        color: #000;
-      }
-      .chat-messages {
-        flex: 1;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 10px;
-        margin-bottom: 10px;
-        overflow-y: auto;
-      }
-      .chat-input {
-        display: flex;
-        gap: 10px;
-      }
-      .chat-input input {
-        flex: 1;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-      }
-      .chat-input button {
-        padding: 8px 15px;
-        background: #00437a;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: 0.3s;
-        box-shadow: 0 0 8px rgba(173,216,230, 0.8);
-      }
-      .chat-input button:hover {
-        background: #003366;
-        box-shadow: 0 0 10px rgba(173,216,230, 1);
-      }
-      /* КНОПКА "НАЗАД" */
-      .back-btn {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background-color: #fff;
-        border: 2px solid #00437a;
-        border-radius: 8px;
-        color: #00437a;
-        font-weight: bold;
-        padding: 5px 10px;
-        text-decoration: none;
-        transition: 0.3s;
-        z-index: 2000;
-        font-size: 0.8rem;
-      }
-      .back-btn:hover {
-        background-color: #00437a;
-        color: #fff;
-        box-shadow: 0 0 5px 1px rgba(173,216,230, 0.8);
-      }
-      .back-btn:active {
-        transform: scale(0.98);
-      }
-      /* ЛОГОТИП: делаем чуть больше (примерно +20%) */
-      .logo-block img {
-        width: 400px;
-        height: auto;
-        background: transparent;
-      }
-      /* Главная страница: немного опускаем текст и кнопки */
-      #main .text-block {
-        margin-top: 30px;
-        margin-bottom: 20px;
-        max-width: 600px;
-      }
-      .main-buttons {
-        margin-top: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
-      .main-buttons button,
-      .main-buttons a.button-link {
-        background-color: #00437a;
-        border: 2px solid #00437a;
-        border-radius: 8px;
-        color: #fff;
-        font-size: 1rem;
-        font-weight: bold;
-        padding: 15px;
-        width: 250px;
-        text-align: center;
-        text-decoration: none;
-        cursor: pointer;
-        transition: 0.2s ease;
-        box-shadow: 0 0 8px rgba(173,216,230, 0.8);
-      }
-      .main-buttons button:hover,
-      .main-buttons a.button-link:hover {
-        background-color: #003366;
-        box-shadow: 0 0 10px rgba(173,216,230, 1);
-      }
-      .main-buttons button:active,
-      .main-buttons a.button-link:active {
-        transform: scale(0.98);
-        box-shadow: 0 0 5px rgba(173,216,230, 0.6);
-      }
-      .highlight-btn {
-        background-color: #00437a;
-        border-color: #00437a;
-        color: #fff;
-        box-shadow: 0 0 8px rgba(173,216,230, 0.8);
-      }
-      .highlight-btn:hover {
-        background-color: #003366;
-        border-color: #003366;
-        box-shadow: 0 0 10px rgba(173,216,230, 1);
-      }
-      /* ЭКРАН "ПОСЛУГИ" */
-      #services {
-        font-family: Arial, sans-serif;
-        font-size: 1rem;
-        max-width: 800px;
-        width: 100%;
-        margin: 0 auto;
-        padding-top: 30px;
-      }
-      /* ФОРМА "ЗАМОВИТИ" */
-      #orderFormContainer {
-        width: 90%;
-        max-width: 600px;
-        background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
-        border: 2px solid #00437a;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        margin-bottom: 50px;
-        text-align: left;
-      }
-      #orderForm {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
-      #orderForm label {
-        font-weight: bold;
-      }
-      #orderForm input[type="number"],
-      #orderForm input[type="text"],
-      #orderForm input[type="datetime-local"] {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-      }
-      .form-btn {
-        padding: 12px;
-        background-color: #00437a;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        text-align: center;
-        transition: 0.2s ease;
-        box-shadow: 0 0 8px rgba(173,216,230, 0.8);
-      }
-      .form-btn:hover {
-        background-color: #003366;
-        box-shadow: 0 0 10px rgba(173,216,230, 1);
-      }
-      .form-btn:active {
-        transform: scale(0.98);
-        box-shadow: 0 0 5px rgba(173,216,230, 0.6);
-      }
-      /* ОБЩИЕ СТИЛИ ДЛЯ МОДАЛЕЙ */
-      .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0, 0, 0, 0.5);
-        align-items: center;
-        justify-content: center;
-      }
-      .close {
-        color: #aaa;
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        font-size: 24px;
-        font-weight: bold;
-        cursor: pointer;
-      }
-      .close:hover {
-        color: #000;
-      }
-      /* МОДАЛЬНОЕ ОКНО "КОНТАКТИ" */
-      #contactModal {
-        display: none;
-        position: fixed;
-        z-index: 3000;
-        left: 0;
-        top: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0, 0, 0, 0.5);
-        align-items: center;
-        justify-content: center;
-      }
-      #contactModal .modal-content {
-        background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
-        border: 2px solid #00437a;
-        border-radius: 8px;
-        padding: 20px;
-        width: 90%;
-        max-width: 600px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        position: relative;
-        min-height: 450px;
-        text-align: justify;
-      }
-      #contactModal .modal-content p {
-        margin-bottom: 0.8em;
-      }
-      #contactModal h2 {
-        text-align: center;
-        margin-bottom: 10px;
-      }
-      /* Адрес офісу в одну строку */
-      #contactModal .modal-content p.office-address {
-        white-space: nowrap;
-      }
-      /* МОДАЛЬНОЕ ОКНО ДЛЯ КАРТЫ */
-      #mapModal .modal-content {
-        background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
-        border-radius: 8px;
-        padding: 10px;
-        position: relative;
-        width: 90%;
-        max-width: 600px;
-        height: 500px;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      }
-      #mapTitle {
-        text-align: center;
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #00437a;
-      }
-      #olMap {
-        flex: 1;
-        margin-top: 10px;
-        border: 2px solid #00437a;
-        border-radius: 8px;
-      }
-      .map-confirm-btn {
-        position: absolute;
-        bottom: 30px;
-        right: 20px;
-        background-color: #00437a;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        padding: 6px 12px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: 0.2s ease;
-        box-shadow: 0 0 8px rgba(173,216,230, 0.8);
-      }
-      .map-confirm-btn:hover {
-        background-color: #003366;
-        box-shadow: 0 0 10px rgba(173,216,230, 1);
-      }
-      .map-confirm-btn:active {
-        transform: scale(0.98);
-        box-shadow: 0 0 5px rgba(173,216,230, 0.6);
-      }
-      /* Раздел "Про нас" */
-      #about {
-        padding-top: 60px;
-      }
-    </style>
-    <!-- OpenLayers JS -->
-    <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
-  </head>
-  <body>
-    <!-- LOADER (3 секунды) -->
-    <div id="loader">
-      <div class="spinner"></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Пан Водовоз - Доставка води по Україні</title>
+  
+  <!-- OpenLayers CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.css">
+  <style>
+    /* СБРОС И БАЗОВЫЕ СТИЛИ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+    }
+
+    /* LOADER (3 секунды) */
+    #loader {
+      position: fixed;
+      z-index: 9999;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 8px solid #f2f2f2;
+      border-top: 8px solid #00437a;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* CONFIRM LOADER – появляется при нажатии на "Підтвердити" */
+    #confirmLoader {
+      position: fixed;
+      z-index: 10000;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* СТИЛИ СЕКЦИЙ с плавным переходом */
+    section {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    section.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    /* Главная страница – не прокручивается */
+    #main {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 20px;
+      text-align: center;
+    }
+    /* Остальные секции – прокручиваются */
+    section:not(#main) {
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-y: auto;
+      padding: 20px;
+      text-align: left;
+    }
+
+    /* Общие стили для текстовых элементов (выравнивание по краям) */
+    p {
+      text-align: justify;
+      margin-bottom: 1em;
+    }
+    
+    /* Сделать текст описания на главной странице жирным */
+    #main .text-block p {
+      font-weight: bold;
+    }
+
+    /* ИКОНКИ (TELEGRAM, Viber) – СЛЕВА СВЕРХУ */
+    .social-icons {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2000;
+      display: flex;
+      gap: 10px;
+    }
+    .social-icons img {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+    }
+
+    /* МОДАЛ ЧАТА */
+    #chatModal {
+      display: none;
+      position: fixed;
+      z-index: 3000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+    }
+    #chatModal .chat-content {
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+      border-radius: 8px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    #chatModal .chat-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 24px;
+      color: #aaa;
+      cursor: pointer;
+    }
+    #chatModal .chat-close:hover {
+      color: #000;
+    }
+    .chat-messages {
+      flex: 1;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 10px;
+      overflow-y: auto;
+    }
+    .chat-input {
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .chat-input button {
+      padding: 8px 15px;
+      background: #00437a;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 0 8px rgba(173,216,230, 0.8);
+    }
+    .chat-input button:hover {
+      background: #003366;
+      box-shadow: 0 0 10px rgba(173,216,230, 1);
+    }
+
+    /* КНОПКА "НАЗАД" */
+    .back-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: #fff;
+      border: 2px solid #00437a;
+      border-radius: 8px;
+      color: #00437a;
+      font-weight: bold;
+      padding: 5px 10px;
+      text-decoration: none;
+      transition: 0.3s;
+      z-index: 2000;
+      font-size: 0.8rem;
+    }
+    .back-btn:hover {
+      background-color: #00437a;
+      color: #fff;
+      box-shadow: 0 0 5px 1px rgba(173,216,230, 0.8);
+    }
+    .back-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* ЛОГОТИП: делаем чуть больше (примерно +20%) */
+    .logo-block img {
+      width: 400px;
+      height: auto;
+      background: transparent;
+    }
+
+    /* Главная страница: немного опускаем текст и кнопки */
+    #main .text-block {
+      margin-top: 30px;
+      margin-bottom: 20px;
+      max-width: 600px;
+    }
+    .main-buttons {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .main-buttons button {
+      background-color: #00437a;
+      border: 2px solid #00437a;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 15px;
+      width: 250px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      box-shadow: 0 0 8px rgba(173,216,230, 0.8);
+    }
+    .main-buttons button:hover {
+      background-color: #003366;
+      box-shadow: 0 0 10px rgba(173,216,230, 1);
+    }
+    .main-buttons button:active {
+      transform: scale(0.98);
+      box-shadow: 0 0 5px rgba(173,216,230, 0.6);
+    }
+    .highlight-btn {
+      background-color: #00437a;
+      border-color: #00437a;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(173,216,230, 0.8);
+    }
+    .highlight-btn:hover {
+      background-color: #003366;
+      border-color: #003366;
+      box-shadow: 0 0 10px rgba(173,216,230, 1);
+    }
+
+    /* ЭКРАН "ПОСЛУГИ": опускаем чуть ниже */
+    #services {
+      font-family: Arial, sans-serif;
+      font-size: 1rem;
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+      padding-top: 30px;
+    }
+
+    /* ФОРМА "ЗАМОВИТИ" */
+    #orderFormContainer {
+      width: 90%;
+      max-width: 600px;
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+      border: 2px solid #00437a;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      margin-bottom: 50px;
+      text-align: left;
+    }
+    #orderForm {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    #orderForm label {
+      font-weight: bold;
+    }
+    #orderForm input[type="number"],
+    #orderForm input[type="text"],
+    #orderForm input[type="datetime-local"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .form-btn {
+      padding: 12px;
+      background-color: #00437a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      transition: 0.2s ease;
+      box-shadow: 0 0 8px rgba(173,216,230, 0.8);
+    }
+    .form-btn:hover {
+      background-color: #003366;
+      box-shadow: 0 0 10px rgba(173,216,230, 1);
+    }
+    .form-btn:active {
+      transform: scale(0.98);
+      box-shadow: 0 0 5px rgba(173,216,230, 0.6);
+    }
+
+    /* ОБЩИЕ СТИЛИ ДЛЯ МОДАЛЕЙ */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+    .close {
+      color: #aaa;
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover {
+      color: #000;
+    }
+
+    /* МОДАЛЬНОЕ ОКНО "КОНТАКТИ" */
+    #contactModal {
+      display: none;
+      position: fixed;
+      z-index: 3000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+    #contactModal .modal-content {
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+      border: 2px solid #00437a;
+      border-radius: 8px;
+      padding: 20px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      position: relative;
+      min-height: 450px;
+      text-align: justify;
+    }
+    #contactModal .modal-content p {
+      margin-bottom: 0.8em;
+    }
+    #contactModal h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    /* Адрес офісу в одну строку */
+    #contactModal .modal-content p.office-address {
+      white-space: nowrap;
+    }
+
+    /* МОДАЛЬНОЕ ОКНО ДЛЯ КАРТЫ */
+    #mapModal .modal-content {
+      background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
+      border-radius: 8px;
+      padding: 10px;
+      position: relative;
+      width: 90%;
+      max-width: 600px;
+      height: 500px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    #mapTitle {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #00437a;
+    }
+    #olMap {
+      flex: 1;
+      margin-top: 10px;
+      border: 2px solid #00437a;
+      border-radius: 8px;
+    }
+    .map-confirm-btn {
+      position: absolute;
+      bottom: 30px;
+      right: 20px;
+      background-color: #00437a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: 0.2s ease;
+      box-shadow: 0 0 8px rgba(173,216,230, 0.8);
+    }
+    .map-confirm-btn:hover {
+      background-color: #003366;
+      box-shadow: 0 0 10px rgba(173,216,230, 1);
+    }
+    .map-confirm-btn:active {
+      transform: scale(0.98);
+      box-shadow: 0 0 5px rgba(173,216,230, 0.6);
+    }
+
+    /* Раздел "Про нас": опускаем чуть ниже */
+    #about {
+      padding-top: 60px;
+    }
+  </style>
+
+  <!-- OpenLayers JS -->
+  <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
+</head>
+<body>
+
+<!-- LOADER (3 секунды) -->
+<div id="loader">
+  <div class="spinner"></div>
+</div>
+
+<!-- CONFIRM LOADER -->
+<div id="confirmLoader">
+  <div class="spinner"></div>
+</div>
+
+<!-- ГЛАВНЫЙ ЭКРАН -->
+<section id="main" class="active">
+  <!-- Иконки слева вверху (Telegram, Viber) -->
+  <div class="social-icons">
+    <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="Telegram" />
+    <img src="https://i.ibb.co/VW94zYn8/IMG-9283.png" alt="Viber Icon">
+  </div>
+
+  <div class="logo-block">
+    <img src="https://i.ibb.co/9HkL77rn/IMG-9275.png" alt="Pan Vodovoz Main">
+  </div>
+
+  <div class="text-block">
+    <p>
+      Наша компанія "Пан Водовоз" здійснює доставку питної артезіанської та технічної води 
+      по Чернівцях та Чернівецькій області у будь-яких обсягах. У нас є власний автопарк 
+      і все необхідне обладнання, яке дає можливість швидко замовити технічну або 
+      артезіанську воду, яка підходитиме під будь-які Ваші потреби.
+    </p>
+  </div>
+
+  <div class="main-buttons">
+    <button class="highlight-btn" onclick="showSection('order')">Замовити</button>
+    <button onclick="showSection('services')">Послуги</button>
+    <button onclick="showSection('about')">Про нас</button>
+    <button onclick="openContactModal()">Контакти</button>
+  </div>
+</section>
+
+<!-- МОДАЛЬНОЕ ОКНО ЧАТА -->
+<div id="chatModal">
+  <div class="chat-content">
+    <span class="chat-close" onclick="document.getElementById('chatModal').style.display='none'">&times;</span>
+    <h2 style="margin-bottom: 10px; color: #00437a;">Чат з оператором</h2>
+    <div class="chat-messages" id="chatMessages">
+      <p><strong>Оператор:</strong> Вітаємо! Чим можу допомогти?</p>
     </div>
-    <!-- CONFIRM LOADER -->
-    <div id="confirmLoader">
-      <div class="spinner"></div>
+    <div class="chat-input">
+      <input type="text" id="chatInputText" placeholder="Напишіть ваше запитання..." />
+      <button onclick="sendMessage()">Надіслати</button>
     </div>
-    <!-- ГЛАВНЫЙ ЭКРАН -->
-    <section id="main" class="active">
-      <!-- Иконки слева вверху (Telegram, Viber) -->
-      <div class="social-icons">
-        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="Telegram" />
-        <img src="https://i.ibb.co/VW94zYn8/IMG-9283.png" alt="Viber Icon" />
-      </div>
-      <!-- Приветствие -->
-      <h1>Вітаємо в Пан Водовоз!</h1>
-      <div class="logo-block">
-        <img src="https://i.ibb.co/9HkL77rn/IMG-9275.png" alt="Pan Vodovoz Main" />
-      </div>
-      <div class="text-block">
-        <p>
-          Наша компанія "Пан Водовоз" здійснює доставку питної артезіанської та технічної води
-          по Чернівцях та Чернівецькій області у будь-яких обсягах. У нас є власний автопарк
-          і все необхідне обладнання, яке дає можливість швидко замовити воду, яка підходитиме під
-          будь-які Ваші потреби.
-        </p>
-      </div>
-      <div class="main-buttons">
-        <button class="highlight-btn" onclick="showSection('order')">Замовити</button>
-        <button onclick="showSection('services')">Послуги</button>
-        <button onclick="showSection('about')">Про нас</button>
-        <button onclick="openContactModal()">Контакти</button>
-        <!-- Красивая кнопка для замовлення через Telegram (открывает мини-приложение) -->
-        <a class="button-link" href="tg://resolve?domain=PanVodovozBot&start=order">Замовити через Telegram</a>
-      </div>
-    </section>
-    <!-- МОДАЛЬНОЕ ОКНО ЧАТА -->
-    <div id="chatModal">
-      <div class="chat-content">
-        <span class="chat-close" onclick="document.getElementById('chatModal').style.display='none'">&times;</span>
-        <h2 style="margin-bottom: 10px; color: #00437a;">Чат з оператором</h2>
-        <div class="chat-messages" id="chatMessages">
-          <p><strong>Оператор:</strong> Вітаємо! Чим можу допомогти?</p>
-        </div>
-        <div class="chat-input">
-          <input type="text" id="chatInputText" placeholder="Напишіть ваше запитання..." />
-          <button onclick="sendMessage()">Надіслати</button>
-        </div>
-      </div>
+  </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ КАРТЫ -->
+<div id="mapModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="document.getElementById('mapModal').style.display='none'">&times;</span>
+    <div id="mapTitle">Оберіть вашу геолокацію</div>
+    <div id="olMap"></div>
+    <button class="map-confirm-btn" onclick="confirmMap()">Підтвердити</button>
+  </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО "КОНТАКТИ" -->
+<div id="contactModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="document.getElementById('contactModal').style.display='none'">&times;</span>
+    <h2 style="color: #00437a;">Контакти</h2>
+    <p><strong>Телефони для замовлення:</strong></p>
+    <p><strong><a href="tel:+380984830002" style="color: inherit; text-decoration: none;">+38 (098) 483 00 02</a></strong></p>
+    <p><strong><a href="tel:+380994920006" style="color: inherit; text-decoration: none;">+38 (099) 492 00 06</a></strong></p>
+    <p style="white-space: nowrap;"><strong>Адреса офісу:</strong> м. Чернівці, вул. Хотинська, 45</p>
+    <p><strong>Графік роботи:</strong> Пн–Нд: 08:00–22:00 (доставка 24/7 за домовленістю)</p>
+    <p>
+      Компанія «Пан Водовоз» здійснює доставку води в різні регіони України. 
+      Забезпечуємо приватних осіб, підприємства, будівельні майданчики, 
+      фермерські господарства та інші об’єкти сертифікованою водою.
+    </p>
+    <p>
+      Звертайтеся за вказаними телефонами, щоб дізнатися вартість, терміни 
+      доставки або отримати консультацію з будь-яких питань.
+    </p>
+  </div>
+</div>
+
+<!-- ЭКРАН "ПРО НАС" -->
+<section id="about">
+  <a class="back-btn" onclick="showSection('main')">Назад</a>
+  <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Про нас</h2>
+  <div style="font-family: Arial, sans-serif; font-size: 1rem; max-width:800px; margin:0 auto; margin-top:20px;">
+    <p>
+      Наша компанія «Пан Водовоз» уже понад 15 років спеціалізується на доставці 
+      артезіанської та технічної води для різних потреб: від приватних домоволодінь 
+      до великих підприємств. Ми маємо власний автопарк спеціалізованих автоцистерн, 
+      які проходять регулярну санітарну обробку та перевірку.
+    </p>
+    <p>
+      Серед наших переваг:
+    </p>
+    <ul style="margin-left: 20px; list-style: disc;">
+      <li>Оперативна доставка (день у день або за попереднім замовленням)</li>
+      <li>Цілодобовий режим роботи (24/7) за домовленістю</li>
+      <li>Можливість доставити воду в будь-який район області</li>
+      <li>Наявність усіх необхідних сертифікатів якості</li>
+      <li>Гнучкі тарифи та індивідуальний підхід до кожного клієнта</li>
+    </ul>
+    <p>
+      «Пан Водовоз» вже більше 15 років успішно працює на ринку доставки води в Чернівцях та області. 
+      Ми пропонуємо комплексні рішення для забезпечення питною та технічною водою як приватних клієнтів, 
+      так і підприємств. Наш автопарк складається з сучасних автоцистерн, які регулярно проходять 
+      технічний огляд та санітарну обробку.
+    </p>
+    <p>
+      Серед наших замовників – будівельні компанії, фермерські господарства, автопарки, приватні особи. 
+      Ми готові доставити необхідний обсяг води в стислі терміни, забезпечуючи якість та відповідність 
+      усім необхідним стандартам.
+    </p>
+    <div style="text-align:center; margin-top:20px;">
+      <img src="https://i.ibb.co/VW8bt8t8/IMG-9272.jpg" alt="IMG-9272" 
+           style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
-    <!-- МОДАЛЬНОЕ ОКНО ДЛЯ КАРТЫ -->
-    <div id="mapModal" class="modal">
-      <div class="modal-content">
-        <span class="close" onclick="document.getElementById('mapModal').style.display='none'">&times;</span>
-        <div id="mapTitle">Оберіть вашу геолокацію</div>
-        <div id="olMap"></div>
-        <button class="map-confirm-btn" onclick="confirmMap()">Підтвердити</button>
-      </div>
+  </div>
+</section>
+
+<!-- ЭКРАН "ПОСЛУГИ" -->
+<section id="services">
+  <a class="back-btn" onclick="showSection('main')">Назад</a>
+  <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Послуги</h2>
+  <div style="font-family: Arial, sans-serif; font-size: 1rem;">
+    <!-- (1) Доставка артезіанської води -->
+    <p><strong>Доставка артезіанської води</strong></p>
+    <p>
+      Наша компанія здійснює доставку води водовозом у Чернівцях у будь-якому обсязі. 
+      Артезіанська вода від «Пан Водовоз» відповідає всім нормам, має необхідні 
+      сертифікати та проходить лабораторну перевірку. Підходить для кулерів, 
+      приготування їжі, приватних басейнів, фермерських господарств (для тварин і птахів).
+    </p>
+    <p>
+      Використання повноцінної техніки гарантує доставку води без пошкоджень. Ми можемо 
+      в стислі терміни надати потрібний обсяг. Можливе як одноразове замовлення, так і 
+      довгострокова співпраця з регулярним графіком поставок.
+    </p>
+    <div style="text-align:center; margin-top:20px;">
+      <img src="https://i.ibb.co/VW8bt8t8/IMG-9272.jpg" alt="IMG-9272"
+           style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
-    <!-- МОДАЛЬНОЕ ОКНО "КОНТАКТИ" -->
-    <div id="contactModal" class="modal">
-      <div class="modal-content">
-        <span class="close" onclick="document.getElementById('contactModal').style.display='none'">&times;</span>
-        <h2 style="color: #00437a;">Контакти</h2>
-        <p><strong>Телефони для замовлення:</strong></p>
-        <p><strong><a href="tel:+380984830002" style="color: inherit; text-decoration: none;">+38 (098) 483 00 02</a></strong></p>
-        <p><strong><a href="tel:+380994920006" style="color: inherit; text-decoration: none;">+38 (099) 492 00 06</a></strong></p>
-        <p style="white-space: nowrap;"><strong>Адреса офісу:</strong> м. Чернівці, вул. Хотинська, 45</p>
-        <p><strong>Графік роботи:</strong> Пн–Нд: 08:00–22:00 (доставка 24/7 за домовленістю)</p>
-        <p>
-          Компанія «Пан Водовоз» здійснює доставку води в різні регіони України.
-          Забезпечуємо приватних осіб, підприємства, будівельні майданчики,
-          фермерські господарства та інші об’єкти сертифікованою водою.
-        </p>
-        <p>
-          Звертайтеся за вказаними телефонами, щоб дізнатися вартість, терміни
-          доставки або отримати консультацію з будь-яких питань.
-        </p>
-      </div>
+    <br>
+    <!-- (2) Доставка технічної води -->
+    <p><strong>Доставка технічної води</strong></p>
+    <p>
+      Технічна вода може бути використана для поливу полів, миття фасадів, 
+      при будівництві, для миття авто тощо. Швидка подача води у ємності 
+      мотопомпою під тиском. Якісна вода відповідає всім нормам та має 
+      необхідні сертифікати. Наповнимо резервуар будь-якого об’єму до 
+      15 м³, довжина шланга до 70 метрів.
+    </p>
+    <ul style="margin-left: 20px; list-style: circle;">
+      <li>Великі обсяги (до 15 м³ за один рейс)</li>
+      <li>Шланг довжиною до 70 метрів</li>
+      <li>Швидке реагування на замовлення</li>
+      <li>Доступні тарифи та знижки для постійних клієнтів</li>
+    </ul>
+    <div style="text-align:center; margin-top:20px;">
+      <img src="https://i.ibb.co/0ytfm48M/IMG-9271.jpg" alt="IMG-9271" 
+           style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
-    <!-- ЭКРАН "ПРО НАС" -->
-    <section id="about">
-      <a class="back-btn" onclick="showSection('main')">Назад</a>
-      <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Про нас</h2>
-      <div style="font-family: Arial, sans-serif; font-size: 1rem; max-width:800px; margin:0 auto; margin-top:20px;">
-        <p>
-          Наша компанія «Пан Водовоз» уже понад 15 років спеціалізується на доставці
-          артезіанської та технічної води для різних потреб: від приватних домоволодінь
-          до великих підприємств. Ми маємо власний автопарк спеціалізованих автоцистерн,
-          які проходять регулярну санітарну обробку та перевірку.
-        </p>
-        <p>
-          Серед наших переваг:
-        </p>
-        <ul style="margin-left: 20px; list-style: disc;">
-          <li>Оперативна доставка (день у день або за попереднім замовленням)</li>
-          <li>Цілодобовий режим роботи (24/7) за домовленістю</li>
-          <li>Можливість доставити воду в будь-який район області</li>
-          <li>Наявність усіх необхідних сертифікатів якості</li>
-          <li>Гнучкі тарифи та індивідуальний підхід до кожного клієнта</li>
-        </ul>
-        <p>
-          «Пан Водовоз» вже більше 15 років успішно працює на ринку доставки води в Чернівцях та області.
-          Ми пропонуємо комплексні рішення для забезпечення питною та технічною водою як приватних клієнтів,
-          так і підприємств. Наш автопарк складається з сучасних автоцистерн, які регулярно проходять
-          технічний огляд та санітарну обробку.
-        </p>
-        <p>
-          Серед наших замовників – будівельні компанії, фермерські господарства, автопарки, приватні особи.
-          Ми готові доставити необхідний обсяг води в стислі терміни, забезпечуючи якість та відповідність
-          усім необхідним стандартам.
-        </p>
-        <div style="text-align:center; margin-top:20px;">
-          <img src="https://i.ibb.co/VW8bt8t8/IMG-9272.jpg" alt="IMG-9272" style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
-        </div>
-      </div>
-    </section>
-    <!-- ЭКРАН "ПОСЛУГИ" -->
-    <section id="services">
-      <a class="back-btn" onclick="showSection('main')">Назад</a>
-      <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Послуги</h2>
-      <div style="font-family: Arial, sans-serif; font-size: 1rem;">
-        <!-- (1) Доставка артезіанської води -->
-        <p><strong>Доставка артезіанської води</strong></p>
-        <p>
-          Наша компанія здійснює доставку води водовозом у Чернівцях у будь-якому обсязі.
-          Артезіанська вода від «Пан Водовоз» відповідає всім нормам, має необхідні
-          сертифікати та проходить лабораторну перевірку. Підходить для кулерів,
-          приготування їжі, приватних басейнів, фермерських господарств.
-        </p>
-        <p>
-          Використання повноцінної техніки гарантує доставку води без пошкоджень.
-          Ми можемо в стислі терміни надати потрібний обсяг. Можливе як одноразове замовлення,
-          так і довгострокова співпраця з регулярним графіком поставок.
-        </p>
-        <div style="text-align:center; margin-top:20px;">
-          <img src="https://i.ibb.co/VW8bt8t8/IMG-9272.jpg" alt="IMG-9272" style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
-        </div>
-        <br>
-        <!-- (2) Доставка технічної води -->
-        <p><strong>Доставка технічної води</strong></p>
-        <p>
-          Технічна вода може бути використана для поливу полів, миття фасадів,
-          при будівництві, для миття авто тощо. Швидка подача води у ємності
-          мотопомпою під тиском. Якісна вода відповідає всім нормам та має
-          необхідні сертифікати. Наповнимо резервуар будь-якого об’єму до 15 м³, довжина шланга до 70 метрів.
-        </p>
-        <ul style="margin-left: 20px; list-style: circle;">
-          <li>Великі обсяги (до 15 м³ за один рейс)</li>
-          <li>Шланг довжиною до 70 метрів</li>
-          <li>Швидке реагування на замовлення</li>
-          <li>Доступні тарифи та знижки для постійних клієнтів</li>
-        </ul>
-        <div style="text-align:center; margin-top:20px;">
-          <img src="https://i.ibb.co/0ytfm48M/IMG-9271.jpg" alt="IMG-9271" style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
-        </div>
-        <br>
-        <!-- (3) Доставка води для басейнів -->
-        <p><strong>Доставка води для басейнів</strong></p>
-        <p>
-          Здійснюється наливання води у басейни будь-якого об’єму за допомогою
-          спеціальних автоцистерн, оснащених насосним обладнанням. Після кожного
-          рейсу проводиться санітарна обробка, що гарантує чистоту та відсутність
-          сторонніх домішок.
-        </p>
-        <div style="text-align:center; margin-top:20px;">
-          <img src="https://i.ibb.co/hJDd4s6f/IMG-9273.jpg" alt="IMG-9273" style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
-        </div>
-        <br>
-        <!-- (4) Додаткові послуги -->
-        <p><strong>Додаткові послуги</strong></p>
-        <ul style="margin-left: 20px; list-style: square;">
-          <li>Ассенізація та вивіз стічних вод</li>
-          <li>Регулярні поставки за договором</li>
-          <li>Консультації щодо вибору оптимального виду води (технічна/артезіанська)</li>
-        </ul>
-        <br>
-        <p><strong>Скільки коштує доставка технічної води та доставка артезіанської води?</strong></p>
-        <p>
-          Ціни на доставку можуть залежати від віддаленості, об’єму та конкретних вимог.
-          Щоб дізнатися точну вартість, натисніть на кнопку нижче або зателефонуйте нам.
-        </p>
-        <button class="form-btn" style="margin: 10px 0;" onclick="openContactModal()">
-          Дізнатися точну ціну
-        </button>
-        <p>
-          <strong>Надаємо послуги водовоза по всій Чернівецькій області</strong><br>
-          Доставка можлива день у день (за наявності вільних авто) або за попереднім записом.
-          Працюємо 24/7 за домовленістю.
-        </p>
-      </div>
-    </section>
-    <!-- ЭКРАН "ЗАМОВИТИ" -->
-    <section id="order">
-      <a class="back-btn" onclick="showSection('main')">Назад</a>
-      <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Замовити</h2>
-      <p style="max-width:600px; text-align:justify; margin-bottom:20px;">
-        Будь ласка, заповніть форму нижче, щоб швидко оформити замовлення на доставку води.
-        Вкажіть необхідні дані: обсяг, довжину шланга, адресу та бажаний час доставки, а також
-        свій номер телефону. Натисніть «Вибрати геолокацію», щоб уточнити місце доставки на мапі.
-      </p>
-      <div id="orderFormContainer">
-        <form id="orderForm">
-          <label for="volume">Кількість води (кубів)*</label>
-          <input type="number" id="volume" name="volume" min="1" placeholder="Наприклад, 10" required />
-          <label for="hoseLength">Довжина шланга (метрів)*</label>
-          <input type="number" id="hoseLength" name="hoseLength" min="1" placeholder="Наприклад, 70" required />
-          <label for="address">Адреса доставки*</label>
-          <input type="text" id="address" name="address" placeholder="Вкажіть адресу або натисніть на мапу" required />
-          <label for="deliveryTime">Час та дата доставки*</label>
-          <input type="datetime-local" id="deliveryTime" name="deliveryTime" required />
-          <label for="clientPhone">Ваш номер телефону*</label>
-          <input type="text" id="clientPhone" name="clientPhone" placeholder="+38 (___) ___ __ __" required />
-          <button type="button" class="form-btn" onclick="openMapModal()">Вибрати геолокацію</button>
-          <button type="submit" class="form-btn">Залишити заявку</button>
-        </form>
-      </div>
-    </section>
-    <!-- СКРИПТЫ -->
-    <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
-    <script>
-      // 1) LOADER (3 секунды)
-      window.addEventListener('load', function () {
-        setTimeout(function () {
-          document.getElementById('loader').style.display = 'none';
-          showSection('main');
-        }, 3000);
+    <br>
+    <!-- (3) Доставка води для басейнів -->
+    <p><strong>Доставка води для басейнів</strong></p>
+    <p>
+      Здійснюється наливання води у басейни будь-якого об’єму за допомогою 
+      спеціальних автоцистерн, оснащених насосним обладнанням. Після кожного 
+      рейсу проводиться санітарна обробка, що гарантує чистоту та відсутність 
+      сторонніх домішок.
+    </p>
+    <div style="text-align:center; margin-top:20px;">
+      <img src="https://i.ibb.co/hJDd4s6f/IMG-9273.jpg" alt="IMG-9273" 
+           style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
+    </div>
+    <br>
+    <!-- (4) Додаткові послуги -->
+    <p><strong>Додаткові послуги</strong></p>
+    <ul style="margin-left: 20px; list-style: square;">
+      <li>Ассенізація та вивіз стічних вод</li>
+      <li>Регулярні поставки за договором</li>
+      <li>Консультації щодо вибору оптимального виду води (технічна/артезіанська)</li>
+    </ul>
+    <br>
+    <p><strong>Скільки коштує доставка технічної води та доставка артезіанської води?</strong></p>
+    <p>
+      Ціни на доставку можуть залежати від віддаленості, об’єму та конкретних вимог. 
+      Щоб дізнатися точну вартість, натисніть на кнопку нижче або зателефонуйте нам.
+    </p>
+    <button class="form-btn" style="margin: 10px 0;" onclick="openContactModal()">
+      Дізнатися точну ціну
+    </button>
+    <p>
+      <strong>Надаємо послуги водовоза по всій Чернівецькій області</strong><br>
+      Доставка можлива день у день (за наявності вільних авто) або за попереднім 
+      записом. Працюємо 24/7 за домовленістю.
+    </p>
+  </div>
+</section>
+
+<!-- ЭКРАН "ЗАМОВИТИ" -->
+<section id="order">
+  <a class="back-btn" onclick="showSection('main')">Назад</a>
+  <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Замовити</h2>
+  <!-- Короткое описание для пользователя -->
+  <p style="max-width:600px; text-align:justify; margin-bottom:20px;">
+    Будь ласка, заповніть форму нижче, щоб швидко оформити замовлення на доставку води. 
+    Вкажіть необхідні дані: обсяг, довжину шланга, адресу та бажаний час доставки, а також 
+    свій номер телефону. Натисніть «Вибрати геолокацію», щоб уточнити місце доставки на мапі.
+  </p>
+  <div id="orderFormContainer">
+    <form id="orderForm">
+      <label for="volume">Кількість води (кубів)*</label>
+      <input type="number" id="volume" name="volume" min="1" placeholder="Наприклад, 10" required />
+
+      <label for="hoseLength">Довжина шланга (метрів)*</label>
+      <input type="number" id="hoseLength" name="hoseLength" min="1" placeholder="Наприклад, 70" required />
+
+      <label for="address">Адреса доставки*</label>
+      <input type="text" id="address" name="address" placeholder="Вкажіть адресу або натисніть на мапу" required />
+
+      <label for="deliveryTime">Час та дата доставки*</label>
+      <input type="datetime-local" id="deliveryTime" name="deliveryTime" required />
+
+      <label for="clientPhone">Ваш номер телефону*</label>
+      <input type="text" id="clientPhone" name="clientPhone" placeholder="+38 (___) ___ __ __" required />
+
+      <button type="button" class="form-btn" onclick="openMapModal()">Вибрати геолокацію</button>
+      <button type="submit" class="form-btn">Залишити заявку</button>
+    </form>
+  </div>
+</section>
+
+<!-- СКРИПТЫ -->
+<script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
+<script>
+  // Инициализация Telegram Web App
+  Telegram.WebApp.ready();
+
+  // 1) LOADER (3 секунды)
+  window.addEventListener('load', function() {
+    setTimeout(function(){
+      document.getElementById('loader').style.display = 'none';
+      showSection('main');
+    }, 3000);
+  });
+
+  // 2) Переключение экранов
+  function showSection(sectionId) {
+    const allSections = document.querySelectorAll('section');
+    allSections.forEach(sec => sec.classList.remove('active'));
+    document.getElementById(sectionId).classList.add('active');
+  }
+
+  // 3) Чат с оператором
+  function sendMessage() {
+    const input = document.getElementById('chatInputText');
+    const msg = input.value.trim();
+    if (!msg) return;
+    const chatBox = document.getElementById('chatMessages');
+    const p = document.createElement('p');
+    p.innerHTML = '<strong>Ви:</strong> ' + msg;
+    chatBox.appendChild(p);
+    input.value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // 4) Модальное окно карты (OpenLayers + Nominatim)
+  let mapInitialized = false;
+  let map;
+  let markerSource;
+  function openMapModal() {
+    document.getElementById('mapModal').style.display = 'flex';
+    if (!mapInitialized) {
+      mapInitialized = true;
+      const tileLayer = new ol.layer.Tile({
+        source: new ol.source.OSM()
       });
-      // 2) Переключение экранов
-      function showSection(sectionId) {
-        const allSections = document.querySelectorAll('section');
-        allSections.forEach((sec) => sec.classList.remove('active'));
-        document.getElementById(sectionId).classList.add('active');
-      }
-      // 3) Чат с оператором
-      function sendMessage() {
-        const input = document.getElementById('chatInputText');
-        const msg = input.value.trim();
-        if (!msg) return;
-        const chatBox = document.getElementById('chatMessages');
-        const p = document.createElement('p');
-        p.innerHTML = '<strong>Ви:</strong> ' + msg;
-        chatBox.appendChild(p);
-        input.value = '';
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
-      // 4) Модальное окно карты (OpenLayers + Nominatim)
-      let mapInitialized = false;
-      let map;
-      let markerSource;
-      function openMapModal() {
-        document.getElementById('mapModal').style.display = 'flex';
-        if (!mapInitialized) {
-          mapInitialized = true;
-          const tileLayer = new ol.layer.Tile({
-            source: new ol.source.OSM()
-          });
-          markerSource = new ol.source.Vector();
-          const markerLayer = new ol.layer.Vector({ source: markerSource });
-          map = new ol.Map({
-            target: 'olMap',
-            layers: [tileLayer, markerLayer],
-            view: new ol.View({
-              center: ol.proj.fromLonLat([31.1656, 48.3794]),
-              zoom: 6
-            })
-          });
-          map.on('click', function (evt) {
-            const coords = ol.proj.toLonLat(evt.coordinate);
-            const lat = coords[1];
-            const lon = coords[0];
-            markerSource.clear();
-            const markerFeature = new ol.Feature({
-              geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat]))
-            });
-            markerFeature.setStyle(
-              new ol.style.Style({
-                image: new ol.style.Icon({
-                  anchor: [0.5, 1],
-                  src: 'https://cdn-icons-png.flaticon.com/512/2776/2776067.png',
-                  scale: 0.05
-                })
-              })
-            );
-            markerSource.addFeature(markerFeature);
-            // Обратное геокодирование (Nominatim)
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-              .then((response) => response.json())
-              .then((data) => {
-                let finalAddress = '';
-                if (data && data.address) {
-                  const city = data.address.city || data.address.town || data.address.village || '';
-                  const road = data.address.road || '';
-                  const houseNum = data.address.house_number || '';
-                  if (city) finalAddress += city;
-                  if (road) finalAddress += (finalAddress ? ', ' : '') + road;
-                  if (houseNum) finalAddress += ' ' + houseNum;
-                }
-                if (!finalAddress) {
-                  finalAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}`;
-                }
-                document.getElementById('address').value = finalAddress;
-              })
-              .catch((err) => {
-                document.getElementById('address').value = `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}`;
-              });
-          });
-        }
-      }
-      // 5) Обработка формы "Замовити"
-      const orderForm = document.getElementById('orderForm');
-      orderForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const orderData = {
-          volume: document.getElementById('volume').value,
-          hoseLength: document.getElementById('hoseLength').value,
-          address: document.getElementById('address').value,
-          deliveryTime: document.getElementById('deliveryTime').value,
-          clientPhone: document.getElementById('clientPhone').value
-        };
-        // Отправка данных на сервер (Python бот должен обрабатывать POST /order)
-        fetch('https://your-server-url.com/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderData)
+      markerSource = new ol.source.Vector();
+      const markerLayer = new ol.layer.Vector({ source: markerSource });
+      map = new ol.Map({
+        target: 'olMap',
+        layers: [tileLayer, markerLayer],
+        view: new ol.View({
+          center: ol.proj.fromLonLat([31.1656, 48.3794]),
+          zoom: 6
         })
-          .then((response) => {
-            if (response.ok) {
-              alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
-              orderForm.reset();
-            } else {
-              alert("Помилка при відправленні замовлення. Спробуйте ще раз.");
-            }
+      });
+
+      map.on('click', function(evt) {
+        const coords = ol.proj.toLonLat(evt.coordinate);
+        const lat = coords[1];
+        const lon = coords[0];
+        markerSource.clear();
+        const markerFeature = new ol.Feature({
+          geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat]))
+        });
+        markerFeature.setStyle(new ol.style.Style({
+          image: new ol.style.Icon({
+            anchor: [0.5, 1],
+            src: 'https://cdn-icons-png.flaticon.com/512/2776/2776067.png',
+            scale: 0.05
           })
-          .catch((err) => {
-            alert("Помилка при відправленні замовлення. Спробуйте ще раз.");
+        }));
+        markerSource.addFeature(markerFeature);
+        // Обратное геокодирование (Nominatim)
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+          .then(response => response.json())
+          .then(data => {
+            let finalAddress = '';
+            if (data && data.address) {
+              const city = data.address.city || data.address.town || data.address.village || '';
+              const road = data.address.road || '';
+              const houseNum = data.address.house_number || '';
+              if (city) finalAddress += city;
+              if (road) finalAddress += (finalAddress ? ', ' : '') + road;
+              if (houseNum) finalAddress += ' ' + houseNum;
+            }
+            if (!finalAddress) {
+              finalAddress = `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}`;
+            }
+            document.getElementById('address').value = finalAddress;
+          })
+          .catch(err => {
+            document.getElementById('address').value = `Lat: ${lat.toFixed(4)}, Lng: ${lon.toFixed(4)}`;
           });
       });
-      // 6) Модальное окно "Контакти"
-      function openContactModal() {
-        document.getElementById('contactModal').style.display = 'flex';
-      }
-      function closeContactModal() {
-        document.getElementById('contactModal').style.display = 'none';
-      }
-      // 7) Функция для обработки подтверждения на карте с загрузчиком
-      function confirmMap() {
-        document.getElementById('mapModal').style.display = 'none';
-        document.getElementById('confirmLoader').style.display = 'flex';
-        setTimeout(function () {
-          document.getElementById('confirmLoader').style.display = 'none';
-        }, 3000);
-      }
-    </script>
-  </body>
+    }
+  }
+
+  // 5) Обработка формы "Замовити"
+  const orderForm = document.getElementById('orderForm');
+  orderForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    // Отправка данных через Telegram Web App API
+    const orderData = {
+      volume: document.getElementById('volume').value,
+      hoseLength: document.getElementById('hoseLength').value,
+      address: document.getElementById('address').value,
+      deliveryTime: document.getElementById('deliveryTime').value,
+      clientPhone: document.getElementById('clientPhone').value
+    };
+    Telegram.WebApp.sendData(JSON.stringify(orderData));
+    alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
+    orderForm.reset();
+  });
+
+  // 6) Модальное окно "Контакти"
+  function openContactModal() {
+    document.getElementById('contactModal').style.display = 'flex';
+  }
+  function closeContactModal() {
+    document.getElementById('contactModal').style.display = 'none';
+  }
+  
+  // 7) Функция для обработки подтверждения на карте с загрузчиком
+  function confirmMap() {
+    document.getElementById('mapModal').style.display = 'none';
+    document.getElementById('confirmLoader').style.display = 'flex';
+    setTimeout(function(){
+      document.getElementById('confirmLoader').style.display = 'none';
+    }, 3000);
+  }
+</script>
+</body>
 </html>
