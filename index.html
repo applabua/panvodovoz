@@ -21,7 +21,7 @@
       background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
     }
 
-    /* LOADER (3 секунды) */
+    /* LOADER (скрываем сразу после загрузки) */
     #loader {
       position: fixed;
       z-index: 9999;
@@ -45,7 +45,7 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* CONFIRM LOADER – появляется при нажатии на "Підтвердити" */
+    /* CONFIRM LOADER – появляется при подтверждении на карте */
     #confirmLoader {
       position: fixed;
       z-index: 10000;
@@ -77,8 +77,9 @@
       visibility: visible;
       pointer-events: auto;
     }
-    /* Главная страница – не прокручивается */
+    /* Главная страница – фиксированная, без прокрутки */
     #main {
+      position: fixed;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -86,7 +87,7 @@
       padding: 20px;
       text-align: center;
     }
-    /* Остальные секции – прокручиваются */
+    /* Остальные секции – с прокруткой */
     section:not(#main) {
       flex-direction: column;
       align-items: center;
@@ -96,7 +97,7 @@
       text-align: left;
     }
 
-    /* Общие стили для текстовых элементов (выравнивание по краям) */
+    /* Общие стили для текстовых элементов */
     p {
       text-align: justify;
       margin-bottom: 1em;
@@ -215,14 +216,14 @@
       transform: scale(0.98);
     }
 
-    /* ЛОГОТИП: делаем чуть больше (примерно +20%) */
+    /* ЛОГОТИП */
     .logo-block img {
       width: 400px;
       height: auto;
       background: transparent;
     }
 
-    /* Главная страница: немного опускаем текст и кнопки */
+    /* Главная страница: текст и кнопки */
     #main .text-block {
       margin-top: 30px;
       margin-bottom: 20px;
@@ -267,7 +268,7 @@
       box-shadow: 0 0 10px rgba(173,216,230, 1);
     }
 
-    /* ЭКРАН "ПОСЛУГИ": опускаем чуть ниже */
+    /* ЭКРАН "ПОСЛУГИ" */
     #services {
       font-family: Arial, sans-serif;
       font-size: 1rem;
@@ -447,7 +448,7 @@
 </head>
 <body>
 
-<!-- LOADER (3 секунды) -->
+<!-- LOADER (скрываем сразу после загрузки) -->
 <div id="loader">
   <div class="spinner"></div>
 </div>
@@ -691,12 +692,10 @@
   // Инициализация Telegram Web App
   Telegram.WebApp.ready();
 
-  // 1) LOADER (3 секунды)
+  // 1) Скрываем LOADER сразу после загрузки
   window.addEventListener('load', function() {
-    setTimeout(function(){
-      document.getElementById('loader').style.display = 'none';
-      showSection('main');
-    }, 3000);
+    document.getElementById('loader').style.display = 'none';
+    showSection('main');
   });
 
   // 2) Переключение экранов
@@ -786,7 +785,7 @@
   const orderForm = document.getElementById('orderForm');
   orderForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    // Отправка данных через Telegram Web App API
+    // Собираем данные формы
     const orderData = {
       volume: document.getElementById('volume').value,
       hoseLength: document.getElementById('hoseLength').value,
@@ -794,6 +793,7 @@
       deliveryTime: document.getElementById('deliveryTime').value,
       clientPhone: document.getElementById('clientPhone').value
     };
+    // Отправляем данные через Telegram Web App API
     Telegram.WebApp.sendData(JSON.stringify(orderData));
     alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
     orderForm.reset();
@@ -815,6 +815,18 @@
       document.getElementById('confirmLoader').style.display = 'none';
     }, 3000);
   }
+  
+  // 8) Скрытие клавиатуры на мобильных устройствах при нажатии вне input
+  document.addEventListener('touchstart', function(e) {
+    if (document.activeElement && document.activeElement.tagName === 'INPUT' && !e.target.closest('input')) {
+      document.activeElement.blur();
+    }
+  });
+  document.addEventListener('click', function(e) {
+    if (document.activeElement && document.activeElement.tagName === 'INPUT' && !e.target.closest('input')) {
+      document.activeElement.blur();
+    }
+  });
 </script>
 </body>
 </html>
