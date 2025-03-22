@@ -21,7 +21,7 @@
       background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
     }
 
-    /* LOADER (скрываем сразу после загрузки) */
+    /* LOADER (3 секунды) */
     #loader {
       position: fixed;
       z-index: 9999;
@@ -45,7 +45,7 @@
       100% { transform: rotate(360deg); }
     }
     
-    /* CONFIRM LOADER – появляется при подтверждении на карте */
+    /* CONFIRM LOADER – появляется при нажатии на "Підтвердити" */
     #confirmLoader {
       position: fixed;
       z-index: 10000;
@@ -77,17 +77,22 @@
       visibility: visible;
       pointer-events: auto;
     }
-    /* Главная страница – фиксированная, без прокрутки */
-    #main {
+
+    /* Фиксированные экраны: Главная и Замовити */
+    #main, #order {
       position: fixed;
+      overflow: hidden;
+    }
+
+    /* Главная страница – не прокручивается */
+    #main {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
       padding: 20px;
       text-align: center;
     }
-    /* Остальные секции – с прокруткой */
+    /* Остальные секции – прокручиваются */
     section:not(#main) {
       flex-direction: column;
       align-items: center;
@@ -96,8 +101,12 @@
       padding: 20px;
       text-align: left;
     }
+    /* Переопределение для страницы Замовити – чтобы не было прокрутки */
+    #order {
+      overflow-y: hidden;
+    }
 
-    /* Общие стили для текстовых элементов */
+    /* Общие стили для текстовых элементов (выравнивание по краям) */
     p {
       text-align: justify;
       margin-bottom: 1em;
@@ -216,14 +225,14 @@
       transform: scale(0.98);
     }
 
-    /* ЛОГОТИП */
+    /* ЛОГОТИП: делаем чуть больше (примерно +20%) */
     .logo-block img {
       width: 400px;
       height: auto;
       background: transparent;
     }
 
-    /* Главная страница: текст и кнопки */
+    /* Главная страница: немного опускаем текст и кнопки */
     #main .text-block {
       margin-top: 30px;
       margin-bottom: 20px;
@@ -268,7 +277,7 @@
       box-shadow: 0 0 10px rgba(173,216,230, 1);
     }
 
-    /* ЭКРАН "ПОСЛУГИ" */
+    /* ЭКРАН "ПОСЛУГИ": опускаем чуть ниже */
     #services {
       font-family: Arial, sans-serif;
       font-size: 1rem;
@@ -448,7 +457,7 @@
 </head>
 <body>
 
-<!-- LOADER (скрываем сразу после загрузки) -->
+<!-- LOADER (3 секунды) -->
 <div id="loader">
   <div class="spinner"></div>
 </div>
@@ -578,6 +587,7 @@
   <a class="back-btn" onclick="showSection('main')">Назад</a>
   <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Послуги</h2>
   <div style="font-family: Arial, sans-serif; font-size: 1rem;">
+
     <!-- (1) Доставка артезіанської води -->
     <p><strong>Доставка артезіанської води</strong></p>
     <p>
@@ -595,6 +605,7 @@
       <img src="https://i.ibb.co/VW8bt8t8/IMG-9272.jpg" alt="IMG-9272"
            style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
+
     <br>
     <!-- (2) Доставка технічної води -->
     <p><strong>Доставка технічної води</strong></p>
@@ -615,6 +626,7 @@
       <img src="https://i.ibb.co/0ytfm48M/IMG-9271.jpg" alt="IMG-9271" 
            style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
+
     <br>
     <!-- (3) Доставка води для басейнів -->
     <p><strong>Доставка води для басейнів</strong></p>
@@ -628,6 +640,7 @@
       <img src="https://i.ibb.co/hJDd4s6f/IMG-9273.jpg" alt="IMG-9273" 
            style="width:320px; height:auto; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);" />
     </div>
+
     <br>
     <!-- (4) Додаткові послуги -->
     <p><strong>Додаткові послуги</strong></p>
@@ -636,6 +649,7 @@
       <li>Регулярні поставки за договором</li>
       <li>Консультації щодо вибору оптимального виду води (технічна/артезіанська)</li>
     </ul>
+
     <br>
     <p><strong>Скільки коштує доставка технічної води та доставка артезіанської води?</strong></p>
     <p>
@@ -645,6 +659,7 @@
     <button class="form-btn" style="margin: 10px 0;" onclick="openContactModal()">
       Дізнатися точну ціну
     </button>
+
     <p>
       <strong>Надаємо послуги водовоза по всій Чернівецькій області</strong><br>
       Доставка можлива день у день (за наявності вільних авто) або за попереднім 
@@ -689,13 +704,12 @@
 <!-- СКРИПТЫ -->
 <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
 <script>
-  // Инициализация Telegram Web App
-  Telegram.WebApp.ready();
-
-  // 1) Скрываем LOADER сразу после загрузки
+  // 1) LOADER (3 секунды)
   window.addEventListener('load', function() {
-    document.getElementById('loader').style.display = 'none';
-    showSection('main');
+    setTimeout(function(){
+      document.getElementById('loader').style.display = 'none';
+      showSection('main');
+    }, 3000);
   });
 
   // 2) Переключение экранов
@@ -785,16 +799,6 @@
   const orderForm = document.getElementById('orderForm');
   orderForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    // Собираем данные формы
-    const orderData = {
-      volume: document.getElementById('volume').value,
-      hoseLength: document.getElementById('hoseLength').value,
-      address: document.getElementById('address').value,
-      deliveryTime: document.getElementById('deliveryTime').value,
-      clientPhone: document.getElementById('clientPhone').value
-    };
-    // Отправляем данные через Telegram Web App API
-    Telegram.WebApp.sendData(JSON.stringify(orderData));
     alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
     orderForm.reset();
   });
@@ -815,18 +819,6 @@
       document.getElementById('confirmLoader').style.display = 'none';
     }, 3000);
   }
-  
-  // 8) Скрытие клавиатуры на мобильных устройствах при нажатии вне input
-  document.addEventListener('touchstart', function(e) {
-    if (document.activeElement && document.activeElement.tagName === 'INPUT' && !e.target.closest('input')) {
-      document.activeElement.blur();
-    }
-  });
-  document.addEventListener('click', function(e) {
-    if (document.activeElement && document.activeElement.tagName === 'INPUT' && !e.target.closest('input')) {
-      document.activeElement.blur();
-    }
-  });
 </script>
 </body>
 </html>
