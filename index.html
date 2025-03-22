@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Пан Водовоз - Доставка води по Україні</title>
   
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.css">
   <style>
@@ -21,7 +23,7 @@
       background: linear-gradient(to bottom, #ffffff, #b3e5fc, #e0f7fa);
     }
 
-    /* LOADER (3 секунды) */
+    /* LOADER (3 секунди) */
     #loader {
       position: fixed;
       z-index: 9999;
@@ -102,12 +104,22 @@
       margin-bottom: 1em;
     }
     
-    /* Текст описания на главной странице жирным */
-    #main .text-block p {
+    /* Приветствие на главной странице */
+    #main h1 {
+      color: #00437a;
+      margin-bottom: 20px;
+    }
+    .logo-block img {
+      width: 400px;
+      height: auto;
+      background: transparent;
+      margin-bottom: 20px;
+    }
+    .text-block p {
       font-weight: bold;
     }
-
-    /* Иконки (Telegram, Viber) – слева сверху */
+    
+    /* Иконки (Telegram, Viber) */
     .social-icons {
       position: absolute;
       top: 10px;
@@ -215,25 +227,7 @@
       transform: scale(0.98);
     }
 
-    /* Логотип */
-    .logo-block img {
-      width: 400px;
-      height: auto;
-      background: transparent;
-    }
-
-    /* Приветствие на главной странице */
-    #main h1 {
-      color: #00437a;
-      margin-bottom: 20px;
-    }
-
-    /* Главная страница: описание и кнопки */
-    #main .text-block {
-      margin-top: 30px;
-      margin-bottom: 20px;
-      max-width: 600px;
-    }
+    /* Главная страница: кнопки и описание */
     .main-buttons {
       margin-top: 20px;
       display: flex;
@@ -273,7 +267,7 @@
       box-shadow: 0 0 10px rgba(173,216,230, 1);
     }
 
-    /* Экран "Послуги" и прочие разделы */
+    /* Экран "Послуги", "Про нас" и прочие разделы */
     #services, #about, #order {
       font-family: Arial, sans-serif;
       font-size: 1rem;
@@ -283,7 +277,7 @@
       padding-top: 30px;
     }
 
-    /* Форма "Замовити" */
+    /* Форма "Замовити воду" */
     #orderFormContainer {
       width: 90%;
       max-width: 600px;
@@ -331,7 +325,7 @@
       box-shadow: 0 0 5px rgba(173,216,230, 0.6);
     }
 
-    /* Общие стили для модальных окон */
+    /* Модальные окна */
     .modal {
       display: none;
       position: fixed;
@@ -437,7 +431,7 @@
 </head>
 <body>
 
-<!-- LOADER (3 секунды) -->
+<!-- LOADER (3 секунди) -->
 <div id="loader">
   <div class="spinner"></div>
 </div>
@@ -447,9 +441,9 @@
   <div class="spinner"></div>
 </div>
 
-<!-- ГЛАВНЫЙ ЭКРАН -->
+<!-- ГЛАВНАЯ СТРАНИЦА -->
 <section id="main" class="active">
-  <!-- Иконки слева вверху (Telegram, Viber) -->
+  <!-- Иконки (Telegram, Viber) -->
   <div class="social-icons">
     <img src="https://cdn-icons-png.flaticon.com/512/2111/2111644.png" alt="Telegram" />
     <img src="https://i.ibb.co/VW94zYn8/IMG-9283.png" alt="Viber Icon">
@@ -471,7 +465,7 @@
   </div>
 
   <div class="main-buttons">
-    <!-- Кнопка с текстом "Замовити воду" (цвет кнопки – синий) -->
+    <!-- Кнопка с текстом "Замовити воду" (синяя кнопка) -->
     <button class="highlight-btn" onclick="showSection('order')">Замовити воду</button>
     <button onclick="showSection('services')">Послуги</button>
     <button onclick="showSection('about')">Про нас</button>
@@ -645,7 +639,7 @@
   </div>
 </section>
 
-<!-- ЭКРАН "ЗАМОВИТИ" -->
+<!-- ЭКРАН "ЗАМОВИТИ ВОДУ" -->
 <section id="order">
   <a class="back-btn" onclick="showSection('main')">Назад</a>
   <h2 style="color: #00437a; margin-bottom: 10px; text-align:center;">Замовити воду</h2>
@@ -680,6 +674,9 @@
 <!-- СКРИПТЫ -->
 <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
 <script>
+  // Инициализация Telegram Web App
+  Telegram.WebApp.ready();
+
   // 1) LOADER (3 секунди)
   window.addEventListener('load', function() {
     setTimeout(function(){
@@ -784,9 +781,7 @@
       clientPhone: document.getElementById('clientPhone').value
     };
     // Відправка даних у Telegram-бот через WebApp API
-    if (window.Telegram && window.Telegram.WebApp) {
-      Telegram.WebApp.sendData(JSON.stringify(orderData));
-    }
+    Telegram.WebApp.sendData(JSON.stringify(orderData));
     alert("Ваше замовлення прийнято! Дякуємо за звернення до «Пан Водовоз».");
     orderForm.reset();
   });
